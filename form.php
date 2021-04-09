@@ -1,5 +1,34 @@
 <?php
 
+$host = 'localhost';
+$dbname = 'praktika';
+$port = '3306';
+$user = 'root';
+$password = 'root';
+
+
+$conn = new PDO("mysql:host={$host};port={$port};dbname={$dbname}",$user,$password);
+
+
+
+function getUsers (): array {
+    global $conn;
+    return $conn->query('select * from users')->fetchAll(PDO::FETCH_ASSOC);
+
+}
+
+function addUsers($post)
+{
+    global $conn;
+    $st = $conn->prepare('insert into users (name, last_name, email, age) values (?, ?, ?, ?)');
+
+    $st->execute([
+        $post['name'],
+        $post['last_name'],
+        $post['email'],
+        $post['age'],
+    ]);
+}
 function valid (array $post) : array {
     $validate=[
         'error'=>false,
@@ -7,76 +36,78 @@ function valid (array $post) : array {
         'messages'=>[],
     ];
 
-    if (!empty($post['login']) && !empty($post['password']) && !empty($post['name']) &&  !empty($post['name2'])){
+    if (!empty($post['name']) && !empty($post['last_name']) && !empty($post['email']) &&  !empty($post['age'])){
 
-        $login = trim($post ['login']);
-        $password = trim($post ['password']);
-        $name = trim($post['name']);
-        $name2 = trim($post['name2']);
+        $name = trim($post ['name']);
+        $last_name = trim($post ['last_name']);
+        $email = trim($post['email']);
+        $age = trim($post['age']);
+
+
         $constraints= [
-            'login' => 6,
-            'password'=> 6,
+            'age' => 16 ,
+            'email' =>8,
         ];
 
-        $validateForm=validationLoginAndPassword($login, $password, $constraints, $name, $name2);
+        $validateForm=validLoginAndPassword($name, $last_name, $constraints, $email, $age);
 
-        if (!$validateForm['login']) {
-            $validate['error'] = true;
-            array_push( $validate ['messages'],
-                "Логин должен содержать больше 6 символов"
-            );
-        }
-        if (!$validateForm['password']) {
-            $validate['error'] = true;
-            array_push( $validate ['messages'],
-                "Пароль должен содержать больше 6 символов"
-            );
-        }
         if (!$validateForm['name']){
             $validate['error'] = true;
             array_push( $validate ['messages'],
-                " Имя {$name} некорректно, имя не должно содержать цифры"
+                " Имя {$name} некорректно, имя должно быть без цифр"
             );
         }
-
-        if (!$validateForm['name2']){
+        if (!$validateForm['last_name']){
             $validate['error'] = true;
             array_push( $validate ['messages'],
-                " Фамилия {$name2} некорректна, фамилия не должна содержать цифры"
+                " Фамилия {$last_name} некорректна, фамилия должна быть без цифр"
+            );
+
+        }
+        if (!$validateForm['email']) {
+            $validate['error'] = true;
+            array_push( $validate ['messages'],
+                "Почта должна превышать 8 символа"
             );
         }
-
+        if (!$validateForm['age']) {
+            $validate['error'] = true;
+            array_push( $validate ['messages'],
+                "Вы должны быть не младше 16 лет"
+            );
+        }
         if (!$validate['error']){
             $validate['success'] = true;
             array_push(
                 $validate['messages'],
-                "Вы успешно прошли  регистрацию на этом замечательном сайте!!!<br>Вот Ваши данные:<br>  Ваш логин: {$login}  <br>  Ваш пароль: {$password}  <br> Ваше Имя : {$name} <br> Ваша Фамилия : {$name2}"
+                "Вы успешно прошли валидацию <br>  Ваше имя: {$name}  <br>  Ваша фамилия: {$last_name}  <br> Ваш email : {$email} <br> Ваш возраст : {$age}"
             );
         }
         return $validate;
     }
     return $validate;
 }
-function validationLoginAndPassword(string $login, string $password, array $constraints, string $name, string $name2):array{
+function validLoginAndPassword(string $name, string $last_name, array $constraints, string $email, string $age):array{
     $validateForm=[
-        'login'=>true,
-        'password' => true,
-        'name' => true,
-        'name2' =>true,
+
+        'name'=>true,
+        'last_name' => true,
+        'email' => true,
+        'age' =>true,
     ];
-    if (strlen($login)<$constraints['login']){
-        $validateForm['login'] = false;
+    if (($age)<$constraints['age']){
+        $validateForm['age'] = false;
     }
-    if (strlen($password)<$constraints['password']){
-        $validateForm['password']=false;
+    if (strlen($email)<$constraints['email']){
+        $validateForm['email']=false;
     }
     if (preg_match("/[0-9]/", $name))
     {
         $validateForm['name'] = false;
     }
-    if (preg_match("/[0-9]/", $name2))
+    if (preg_match("/[0-9]/", $last_name))
     {
-        $validateForm['name2'] = false;
+        $validateForm['last_name'] = false;
     }
     return $validateForm;
 }
